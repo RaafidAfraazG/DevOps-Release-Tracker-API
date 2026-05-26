@@ -1,6 +1,6 @@
 # DevOps Release Tracker API
 
-A production-style Java Spring Boot backend for tracking software projects, releases, deployment tasks, rollback notes, and release audit history. It is designed as a resume-ready Software Engineering Intern project for Java/Spring Boot/DevOps roles.
+A production-style Java Spring Boot backend for tracking software projects, releases, deployment tasks, rollback notes, and release audit history.
 
 ## Why This Project Was Built
 
@@ -204,12 +204,6 @@ Add screenshots here:
 - Release status update response
 - Audit log response after status change
 
-## Resume Bullet Points
-
-- Built a Java 17 Spring Boot 3 REST API for DevOps release tracking with JWT authentication, role-based authorization, PostgreSQL persistence, and Dockerized local infrastructure.
-- Implemented release lifecycle workflows including project management, release filtering, deployment tasks, rollback notes, and automatic audit logs for status changes.
-- Designed a clean layered architecture using DTOs, validation, global exception handling, OpenAPI documentation, pagination, and service/controller tests with JUnit 5 and Mockito.
-- Packaged the backend with Maven and Docker Compose to support reproducible local development and deployment demonstrations.
 
 ## Future Improvements
 
