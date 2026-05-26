@@ -228,24 +228,7 @@ curl http://localhost:8080/api/projects \
   -H "Authorization: Bearer <token>"
 ```
 
-## Screenshots
 
-Add screenshots here:
-
-- Swagger UI endpoint list
-- Successful JWT login response
-- Release status update response
-- Release approval response
-- CSV export response
-- Audit log response after status change
-
-## Resume Bullet Points
-
-- Built a Java 17 Spring Boot 3 REST API for DevOps release tracking with JWT authentication, role-based authorization, PostgreSQL persistence, and Dockerized local infrastructure.
-- Implemented release lifecycle workflows including project management, release filtering, approval gates, deployment tasks, rollback notes, and automatic audit logs for status changes.
-- Added production-style release risk scoring and CSV report export to support release readiness analysis and operational reporting.
-- Designed a clean layered architecture using DTOs, validation, global exception handling, OpenAPI documentation, pagination, and service/controller tests with JUnit 5 and Mockito.
-- Packaged the backend with Maven and Docker Compose to support reproducible local development and deployment demonstrations.
 
 ## Future Improvements
 
