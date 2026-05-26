@@ -59,6 +59,25 @@ public class ReleaseService {
                 .map(ReleaseMapper::toResponse));
     }
 
+    @Transactional(readOnly = true)
+    public String exportCsv(Long projectId, ReleaseStatus status, LocalDate fromDate, LocalDate toDate) {
+        StringBuilder csv = new StringBuilder();
+        csv.append("releaseId,projectName,version,title,status,approvalStatus,riskScore,plannedDate,deployedDate\n");
+        releaseRepository.findByFilters(projectId, status, fromDate, toDate, Pageable.unpaged())
+                .getContent()
+                .forEach(release -> csv.append(release.getId()).append(',')
+                        .append(csvValue(release.getProject().getName())).append(',')
+                        .append(csvValue(release.getVersion())).append(',')
+                        .append(csvValue(release.getTitle())).append(',')
+                        .append(release.getStatus()).append(',')
+                        .append(release.getApprovalStatus()).append(',')
+                        .append(release.getRiskScore()).append(',')
+                        .append(release.getPlannedDate()).append(',')
+                        .append(release.getDeployedDate() != null ? release.getDeployedDate() : "")
+                        .append('\n'));
+        return csv.toString();
+    }
+
     @Transactional
     public ReleaseResponse updateStatus(Long id, ReleaseStatusUpdateRequest request) {
         Release release = findEntity(id);
@@ -125,6 +144,17 @@ public class ReleaseService {
             score += 30;
         }
         return Math.min(score, 100);
+    }
+
+    private String csvValue(String value) {
+        if (value == null) {
+            return "";
+        }
+        String escaped = value.replace("\"", "\"\"");
+        if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n")) {
+            return "\"" + escaped + "\"";
+        }
+        return escaped;
     }
 
     public Release findEntity(Long id) {

@@ -20,10 +20,14 @@ import java.time.LocalDate;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ReleaseController.class)
@@ -92,5 +96,19 @@ class ReleaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("DEPLOYED"))
                 .andExpect(jsonPath("$.data.deployedDate").value("2026-07-02"));
+    }
+
+    @Test
+    void exportReleasesReturnsCsvResponse() throws Exception {
+        String csv = "releaseId,projectName,version,title,status,approvalStatus,riskScore,plannedDate,deployedDate\n"
+                + "9,Billing,v2.0.0,Billing release,DEPLOYED,APPROVED,10,2026-07-01,2026-07-02\n";
+        when(releaseService.exportCsv(isNull(), eq(ReleaseStatus.DEPLOYED), isNull(), isNull())).thenReturn(csv);
+
+        mockMvc.perform(get("/api/releases/export")
+                        .param("status", "DEPLOYED"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "attachment; filename=releases.csv"))
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(content().string(csv));
     }
 }

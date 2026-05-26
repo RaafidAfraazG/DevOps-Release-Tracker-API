@@ -19,6 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -156,6 +158,38 @@ class ReleaseServiceTest {
         assertThatThrownBy(() -> releaseService.updateStatus(5L, request))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("Release must be approved before deployment");
+    }
+
+    @Test
+    void exportCsvIncludesFilteredReleaseRows() {
+        Project project = sampleProject();
+        Release release = sampleRelease(project, ReleaseStatus.DEPLOYED);
+        release.setApprovalStatus(ApprovalStatus.APPROVED);
+        release.setRiskScore(20);
+        release.setDeployedDate(LocalDate.of(2026, 6, 3));
+
+        when(releaseRepository.findByFilters(1L, ReleaseStatus.DEPLOYED, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 30), Pageable.unpaged()))
+                .thenReturn(new PageImpl<>(java.util.List.of(release)));
+
+        String csv = releaseService.exportCsv(1L, ReleaseStatus.DEPLOYED, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 30));
+
+        assertThat(csv).startsWith("releaseId,projectName,version,title,status,approvalStatus,riskScore,plannedDate,deployedDate");
+        assertThat(csv).contains("5,Payments,v1.0.0,Release,DEPLOYED,APPROVED,20,2026-06-01,2026-06-03");
+    }
+
+    @Test
+    void exportCsvEscapesCommaContainingValues() {
+        Project project = sampleProject();
+        project.setName("Payments, Core");
+        Release release = sampleRelease(project, ReleaseStatus.PLANNED);
+        release.setTitle("Release, Candidate");
+
+        when(releaseRepository.findByFilters(null, null, null, null, Pageable.unpaged()))
+                .thenReturn(new PageImpl<>(java.util.List.of(release)));
+
+        String csv = releaseService.exportCsv(null, null, null, null);
+
+        assertThat(csv).contains("5,\"Payments, Core\",v1.0.0,\"Release, Candidate\",PLANNED,PENDING,0,2026-06-01,");
     }
 
     @Test

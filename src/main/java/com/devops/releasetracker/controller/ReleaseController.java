@@ -13,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,6 +57,19 @@ public class ReleaseController {
                 "Releases fetched",
                 releaseService.list(projectId, status, fromDate, toDate, pageable)
         ));
+    }
+
+    @GetMapping(value = "/releases/export", produces = "text/csv")
+    public ResponseEntity<String> exportCsv(
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) ReleaseStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate
+    ) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=releases.csv")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(releaseService.exportCsv(projectId, status, fromDate, toDate));
     }
 
     @GetMapping("/releases/{id}")
