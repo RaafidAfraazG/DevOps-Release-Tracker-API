@@ -12,6 +12,9 @@ DevOps teams need visibility into what is being released, who changed release st
 - Role-based access with `ADMIN` and `DEVELOPER`
 - Project CRUD APIs
 - Release creation, listing, filtering, and status transitions
+- Release risk scoring based on incomplete tasks, rollback notes, and failed/rolled-back status
+- Release approval workflow with admin approve/reject actions before deployment
+- CSV export for filtered release reports
 - Deployment task creation, completion, and listing by release
 - Rollback notes for `FAILED` or `ROLLED_BACK` releases
 - Automatic audit log creation whenever release status changes
@@ -52,6 +55,12 @@ The project follows layered architecture:
 - `security`: JWT and user authentication
 - `config`: OpenAPI, security, and seed data configuration
 
+## Recent Enhancements
+
+- Added release risk scoring so teams can quickly identify releases with incomplete deployment work, rollback history, or failed status.
+- Added an approval workflow that requires admin approval before a release can be marked as `DEPLOYED`.
+- Added CSV export for release reports using the same project, status, and date-range filters as the release list API.
+
 ## API Endpoints
 
 Authentication:
@@ -77,13 +86,37 @@ Releases:
 | --- | --- | --- |
 | POST | `/api/projects/{projectId}/releases` | Create release under project |
 | GET | `/api/releases` | List/filter releases |
+| GET | `/api/releases/export` | Export filtered releases as CSV |
 | GET | `/api/releases/{id}` | Get release by id |
 | PATCH | `/api/releases/{id}/status` | Update release status and create audit log |
+| PATCH | `/api/releases/{id}/risk-score` | Recalculate release risk score |
+| PATCH | `/api/releases/{id}/approve` | Approve release, `ADMIN` |
+| PATCH | `/api/releases/{id}/reject` | Reject release with reason, `ADMIN` |
 
 Release filters:
 
 ```text
 GET /api/releases?projectId=1&status=DEPLOYED&fromDate=2026-06-01&toDate=2026-06-30&page=0&size=10
+```
+
+CSV export uses the same filters:
+
+```text
+GET /api/releases/export?projectId=1&status=DEPLOYED&fromDate=2026-06-01&toDate=2026-06-30
+```
+
+Release approval examples:
+
+```bash
+curl -X PATCH http://localhost:8080/api/releases/1/approve \
+  -H "Authorization: Bearer <admin-token>"
+```
+
+```bash
+curl -X PATCH http://localhost:8080/api/releases/1/reject \
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"reason":"Smoke tests failed on staging"}'
 ```
 
 Deployment tasks:
@@ -202,8 +235,17 @@ Add screenshots here:
 - Swagger UI endpoint list
 - Successful JWT login response
 - Release status update response
+- Release approval response
+- CSV export response
 - Audit log response after status change
 
+## Resume Bullet Points
+
+- Built a Java 17 Spring Boot 3 REST API for DevOps release tracking with JWT authentication, role-based authorization, PostgreSQL persistence, and Dockerized local infrastructure.
+- Implemented release lifecycle workflows including project management, release filtering, approval gates, deployment tasks, rollback notes, and automatic audit logs for status changes.
+- Added production-style release risk scoring and CSV report export to support release readiness analysis and operational reporting.
+- Designed a clean layered architecture using DTOs, validation, global exception handling, OpenAPI documentation, pagination, and service/controller tests with JUnit 5 and Mockito.
+- Packaged the backend with Maven and Docker Compose to support reproducible local development and deployment demonstrations.
 
 ## Future Improvements
 
@@ -211,5 +253,5 @@ Add screenshots here:
 - Add CI/CD workflow using GitHub Actions
 - Add Flyway database migrations
 - Add email or Slack notifications for failed deployments
-- Add release approval workflow with reviewer assignment
+- Add multi-reviewer approval workflow with reviewer assignment
 - Add Testcontainers-based PostgreSQL integration tests
