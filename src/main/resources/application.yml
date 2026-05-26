@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: devops-release-tracker-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/release_tracker}
+    username: ${DB_USERNAME:release_user}
+    password: ${DB_PASSWORD:release_password}
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:devops-release-tracker-api-demo-secret-key-change-this-value}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

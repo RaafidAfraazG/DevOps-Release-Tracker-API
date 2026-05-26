@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:release_tracker_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  main:
+    allow-bean-definition-overriding: true
+
+app:
+  jwt:
+    secret: test-release-tracker-secret-key-with-at-least-thirty-two-chars
+    expiration-ms: 3600000
