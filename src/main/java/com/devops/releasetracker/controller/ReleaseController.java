@@ -67,4 +67,9 @@ public class ReleaseController {
     ) {
         return ResponseEntity.ok(ApiResponse.success("Release status updated", releaseService.updateStatus(id, request)));
     }
+
+    @PatchMapping("/releases/{id}/risk-score")
+    public ResponseEntity<ApiResponse<ReleaseResponse>> recalculateRiskScore(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Release risk score recalculated", releaseService.recalculateRiskScore(id)));
+    }
 }

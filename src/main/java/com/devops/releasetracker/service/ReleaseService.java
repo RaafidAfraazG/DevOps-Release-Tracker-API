@@ -5,6 +5,7 @@ import com.devops.releasetracker.dto.ReleaseRequest;
 import com.devops.releasetracker.dto.ReleaseResponse;
 import com.devops.releasetracker.dto.ReleaseStatusUpdateRequest;
 import com.devops.releasetracker.entity.AuditLog;
+import com.devops.releasetracker.entity.DeploymentTask;
 import com.devops.releasetracker.entity.Project;
 import com.devops.releasetracker.entity.Release;
 import com.devops.releasetracker.entity.ReleaseStatus;
@@ -40,6 +41,7 @@ public class ReleaseService {
                 .plannedDate(request.getPlannedDate())
                 .deployedDate(request.getDeployedDate())
                 .build();
+        release.setRiskScore(calculateRiskScore(release));
         return ReleaseMapper.toResponse(releaseRepository.save(release));
     }
 
@@ -64,6 +66,7 @@ public class ReleaseService {
         } else if (request.getDeployedDate() != null) {
             release.setDeployedDate(request.getDeployedDate());
         }
+        release.setRiskScore(calculateRiskScore(release));
 
         Release saved = releaseRepository.save(release);
         if (oldStatus != request.getStatus()) {
@@ -75,6 +78,27 @@ public class ReleaseService {
                     .build());
         }
         return ReleaseMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public ReleaseResponse recalculateRiskScore(Long id) {
+        Release release = findEntity(id);
+        release.setRiskScore(calculateRiskScore(release));
+        return ReleaseMapper.toResponse(releaseRepository.save(release));
+    }
+
+    int calculateRiskScore(Release release) {
+        int incompleteTaskCount = (int) release.getTasks().stream()
+                .filter(task -> !task.isCompleted())
+                .count();
+        int rollbackNoteCount = release.getRollbackNotes().size();
+
+        int score = incompleteTaskCount * 10;
+        score += rollbackNoteCount * 20;
+        if (release.getStatus() == ReleaseStatus.FAILED || release.getStatus() == ReleaseStatus.ROLLED_BACK) {
+            score += 30;
+        }
+        return Math.min(score, 100);
     }
 
     public Release findEntity(Long id) {

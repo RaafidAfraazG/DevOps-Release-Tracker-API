@@ -4,9 +4,11 @@ import com.devops.releasetracker.dto.ReleaseRequest;
 import com.devops.releasetracker.dto.ReleaseResponse;
 import com.devops.releasetracker.dto.ReleaseStatusUpdateRequest;
 import com.devops.releasetracker.entity.AuditLog;
+import com.devops.releasetracker.entity.DeploymentTask;
 import com.devops.releasetracker.entity.Project;
 import com.devops.releasetracker.entity.Release;
 import com.devops.releasetracker.entity.ReleaseStatus;
+import com.devops.releasetracker.entity.RollbackNote;
 import com.devops.releasetracker.repository.AuditLogRepository;
 import com.devops.releasetracker.repository.ReleaseRepository;
 import org.junit.jupiter.api.Test;
@@ -96,6 +98,42 @@ class ReleaseServiceTest {
         releaseService.updateStatus(5L, request);
 
         verify(auditLogRepository, never()).save(any(AuditLog.class));
+    }
+
+    @Test
+    void recalculateRiskScoreAddsPointsForIncompleteTasksRollbackNotesAndFailedStatus() {
+        Project project = sampleProject();
+        Release release = sampleRelease(project, ReleaseStatus.FAILED);
+        release.getTasks().add(DeploymentTask.builder().title("Run smoke tests").assignedTo("qa@example.com").completed(false).build());
+        release.getTasks().add(DeploymentTask.builder().title("Update release notes").assignedTo("dev@example.com").completed(true).build());
+        release.getRollbackNotes().add(RollbackNote.builder().note("Rollback database migration").createdBy("lead@example.com").build());
+
+        when(releaseRepository.findById(5L)).thenReturn(Optional.of(release));
+        when(releaseRepository.save(release)).thenReturn(release);
+
+        ReleaseResponse response = releaseService.recalculateRiskScore(5L);
+
+        assertThat(response.getRiskScore()).isEqualTo(60);
+    }
+
+    @Test
+    void recalculateRiskScoreCapsScoreAtOneHundred() {
+        Project project = sampleProject();
+        Release release = sampleRelease(project, ReleaseStatus.ROLLED_BACK);
+        release.getTasks().add(DeploymentTask.builder().title("Task 1").assignedTo("dev@example.com").completed(false).build());
+        release.getTasks().add(DeploymentTask.builder().title("Task 2").assignedTo("dev@example.com").completed(false).build());
+        release.getTasks().add(DeploymentTask.builder().title("Task 3").assignedTo("dev@example.com").completed(false).build());
+        release.getTasks().add(DeploymentTask.builder().title("Task 4").assignedTo("dev@example.com").completed(false).build());
+        release.getTasks().add(DeploymentTask.builder().title("Task 5").assignedTo("dev@example.com").completed(false).build());
+        release.getRollbackNotes().add(RollbackNote.builder().note("Rollback note 1").createdBy("lead@example.com").build());
+        release.getRollbackNotes().add(RollbackNote.builder().note("Rollback note 2").createdBy("lead@example.com").build());
+
+        when(releaseRepository.findById(5L)).thenReturn(Optional.of(release));
+        when(releaseRepository.save(release)).thenReturn(release);
+
+        ReleaseResponse response = releaseService.recalculateRiskScore(5L);
+
+        assertThat(response.getRiskScore()).isEqualTo(100);
     }
 
     private Project sampleProject() {

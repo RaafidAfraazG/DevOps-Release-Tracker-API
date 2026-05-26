@@ -57,6 +57,10 @@ public class Release {
 
     private LocalDate deployedDate;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private int riskScore = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;

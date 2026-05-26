@@ -19,6 +19,7 @@ public class ReleaseResponse {
     private ReleaseStatus status;
     private LocalDate plannedDate;
     private LocalDate deployedDate;
+    private int riskScore;
     private Instant createdAt;
     private Instant updatedAt;
 }

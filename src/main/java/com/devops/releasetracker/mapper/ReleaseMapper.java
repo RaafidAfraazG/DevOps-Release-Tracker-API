@@ -18,6 +18,7 @@ public final class ReleaseMapper {
                 .status(release.getStatus())
                 .plannedDate(release.getPlannedDate())
                 .deployedDate(release.getDeployedDate())
+                .riskScore(release.getRiskScore())
                 .createdAt(release.getCreatedAt())
                 .updatedAt(release.getUpdatedAt())
                 .build();
