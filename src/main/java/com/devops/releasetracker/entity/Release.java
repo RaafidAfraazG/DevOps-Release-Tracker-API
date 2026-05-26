@@ -61,6 +61,17 @@ public class Release {
     @Column(nullable = false)
     private int riskScore = 0;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
+
+    private String approvedBy;
+    private Instant approvedAt;
+
+    @Column(length = 1000)
+    private String rejectionReason;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
@@ -86,6 +97,9 @@ public class Release {
         updatedAt = createdAt;
         if (status == null) {
             status = ReleaseStatus.PLANNED;
+        }
+        if (approvalStatus == null) {
+            approvalStatus = ApprovalStatus.PENDING;
         }
     }
 

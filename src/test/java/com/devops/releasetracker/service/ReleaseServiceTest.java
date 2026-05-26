@@ -1,14 +1,17 @@
 package com.devops.releasetracker.service;
 
 import com.devops.releasetracker.dto.ReleaseRequest;
+import com.devops.releasetracker.dto.ReleaseRejectionRequest;
 import com.devops.releasetracker.dto.ReleaseResponse;
 import com.devops.releasetracker.dto.ReleaseStatusUpdateRequest;
 import com.devops.releasetracker.entity.AuditLog;
+import com.devops.releasetracker.entity.ApprovalStatus;
 import com.devops.releasetracker.entity.DeploymentTask;
 import com.devops.releasetracker.entity.Project;
 import com.devops.releasetracker.entity.Release;
 import com.devops.releasetracker.entity.ReleaseStatus;
 import com.devops.releasetracker.entity.RollbackNote;
+import com.devops.releasetracker.exception.BadRequestException;
 import com.devops.releasetracker.repository.AuditLogRepository;
 import com.devops.releasetracker.repository.ReleaseRepository;
 import org.junit.jupiter.api.Test;
@@ -23,6 +26,7 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -69,6 +73,7 @@ class ReleaseServiceTest {
         SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("lead@example.com", null));
         Project project = sampleProject();
         Release release = sampleRelease(project, ReleaseStatus.IN_PROGRESS);
+        release.setApprovalStatus(ApprovalStatus.APPROVED);
 
         ReleaseStatusUpdateRequest request = new ReleaseStatusUpdateRequest();
         request.setStatus(ReleaseStatus.DEPLOYED);
@@ -98,6 +103,59 @@ class ReleaseServiceTest {
         releaseService.updateStatus(5L, request);
 
         verify(auditLogRepository, never()).save(any(AuditLog.class));
+    }
+
+    @Test
+    void approveReleaseMarksApprovalMetadata() {
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("admin@example.com", null));
+        Project project = sampleProject();
+        Release release = sampleRelease(project, ReleaseStatus.PLANNED);
+
+        when(releaseRepository.findById(5L)).thenReturn(Optional.of(release));
+        when(releaseRepository.save(release)).thenReturn(release);
+
+        ReleaseResponse response = releaseService.approve(5L);
+
+        assertThat(response.getApprovalStatus()).isEqualTo(ApprovalStatus.APPROVED);
+        assertThat(response.getApprovedBy()).isEqualTo("admin@example.com");
+        assertThat(response.getApprovedAt()).isNotNull();
+        assertThat(response.getRejectionReason()).isNull();
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void rejectReleaseStoresReasonAndClearsApprovalMetadata() {
+        Project project = sampleProject();
+        Release release = sampleRelease(project, ReleaseStatus.PLANNED);
+        release.setApprovalStatus(ApprovalStatus.APPROVED);
+        release.setApprovedBy("admin@example.com");
+
+        ReleaseRejectionRequest request = new ReleaseRejectionRequest();
+        request.setReason("Smoke tests failed on staging");
+
+        when(releaseRepository.findById(5L)).thenReturn(Optional.of(release));
+        when(releaseRepository.save(release)).thenReturn(release);
+
+        ReleaseResponse response = releaseService.reject(5L, request);
+
+        assertThat(response.getApprovalStatus()).isEqualTo(ApprovalStatus.REJECTED);
+        assertThat(response.getApprovedBy()).isNull();
+        assertThat(response.getRejectionReason()).isEqualTo("Smoke tests failed on staging");
+    }
+
+    @Test
+    void updateStatusRejectsDeploymentWhenReleaseIsNotApproved() {
+        Project project = sampleProject();
+        Release release = sampleRelease(project, ReleaseStatus.IN_PROGRESS);
+
+        ReleaseStatusUpdateRequest request = new ReleaseStatusUpdateRequest();
+        request.setStatus(ReleaseStatus.DEPLOYED);
+
+        when(releaseRepository.findById(5L)).thenReturn(Optional.of(release));
+
+        assertThatThrownBy(() -> releaseService.updateStatus(5L, request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Release must be approved before deployment");
     }
 
     @Test
@@ -151,6 +209,7 @@ class ReleaseServiceTest {
                 .version("v1.0.0")
                 .title("Release")
                 .status(status)
+                .approvalStatus(ApprovalStatus.PENDING)
                 .plannedDate(LocalDate.of(2026, 6, 1))
                 .build();
     }

@@ -1,6 +1,7 @@
 package com.devops.releasetracker.dto;
 
 import com.devops.releasetracker.entity.ReleaseStatus;
+import com.devops.releasetracker.entity.ApprovalStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -20,6 +21,10 @@ public class ReleaseResponse {
     private LocalDate plannedDate;
     private LocalDate deployedDate;
     private int riskScore;
+    private ApprovalStatus approvalStatus;
+    private String approvedBy;
+    private Instant approvedAt;
+    private String rejectionReason;
     private Instant createdAt;
     private Instant updatedAt;
 }

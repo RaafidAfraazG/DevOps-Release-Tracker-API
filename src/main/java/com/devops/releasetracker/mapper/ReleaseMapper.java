@@ -19,6 +19,10 @@ public final class ReleaseMapper {
                 .plannedDate(release.getPlannedDate())
                 .deployedDate(release.getDeployedDate())
                 .riskScore(release.getRiskScore())
+                .approvalStatus(release.getApprovalStatus())
+                .approvedBy(release.getApprovedBy())
+                .approvedAt(release.getApprovedAt())
+                .rejectionReason(release.getRejectionReason())
                 .createdAt(release.getCreatedAt())
                 .updatedAt(release.getUpdatedAt())
                 .build();

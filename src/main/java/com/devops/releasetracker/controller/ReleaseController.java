@@ -2,6 +2,7 @@ package com.devops.releasetracker.controller;
 
 import com.devops.releasetracker.dto.ApiResponse;
 import com.devops.releasetracker.dto.PageResponse;
+import com.devops.releasetracker.dto.ReleaseRejectionRequest;
 import com.devops.releasetracker.dto.ReleaseRequest;
 import com.devops.releasetracker.dto.ReleaseResponse;
 import com.devops.releasetracker.dto.ReleaseStatusUpdateRequest;
@@ -14,6 +15,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -66,6 +68,21 @@ public class ReleaseController {
             @Valid @RequestBody ReleaseStatusUpdateRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success("Release status updated", releaseService.updateStatus(id, request)));
+    }
+
+    @PatchMapping("/releases/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<ReleaseResponse>> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Release approved", releaseService.approve(id)));
+    }
+
+    @PatchMapping("/releases/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<ReleaseResponse>> reject(
+            @PathVariable Long id,
+            @Valid @RequestBody ReleaseRejectionRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success("Release rejected", releaseService.reject(id, request)));
     }
 
     @PatchMapping("/releases/{id}/risk-score")

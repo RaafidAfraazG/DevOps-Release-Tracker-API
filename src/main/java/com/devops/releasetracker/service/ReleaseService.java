@@ -1,14 +1,16 @@
 package com.devops.releasetracker.service;
 
 import com.devops.releasetracker.dto.PageResponse;
+import com.devops.releasetracker.dto.ReleaseRejectionRequest;
 import com.devops.releasetracker.dto.ReleaseRequest;
 import com.devops.releasetracker.dto.ReleaseResponse;
 import com.devops.releasetracker.dto.ReleaseStatusUpdateRequest;
 import com.devops.releasetracker.entity.AuditLog;
-import com.devops.releasetracker.entity.DeploymentTask;
+import com.devops.releasetracker.entity.ApprovalStatus;
 import com.devops.releasetracker.entity.Project;
 import com.devops.releasetracker.entity.Release;
 import com.devops.releasetracker.entity.ReleaseStatus;
+import com.devops.releasetracker.exception.BadRequestException;
 import com.devops.releasetracker.exception.ResourceNotFoundException;
 import com.devops.releasetracker.mapper.ReleaseMapper;
 import com.devops.releasetracker.repository.AuditLogRepository;
@@ -19,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Service
@@ -60,6 +63,9 @@ public class ReleaseService {
     public ReleaseResponse updateStatus(Long id, ReleaseStatusUpdateRequest request) {
         Release release = findEntity(id);
         ReleaseStatus oldStatus = release.getStatus();
+        if (request.getStatus() == ReleaseStatus.DEPLOYED && release.getApprovalStatus() != ApprovalStatus.APPROVED) {
+            throw new BadRequestException("Release must be approved before deployment");
+        }
         release.setStatus(request.getStatus());
         if (request.getStatus() == ReleaseStatus.DEPLOYED) {
             release.setDeployedDate(request.getDeployedDate() != null ? request.getDeployedDate() : LocalDate.now());
@@ -78,6 +84,26 @@ public class ReleaseService {
                     .build());
         }
         return ReleaseMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public ReleaseResponse approve(Long id) {
+        Release release = findEntity(id);
+        release.setApprovalStatus(ApprovalStatus.APPROVED);
+        release.setApprovedBy(SecurityUtils.currentUsername());
+        release.setApprovedAt(Instant.now());
+        release.setRejectionReason(null);
+        return ReleaseMapper.toResponse(releaseRepository.save(release));
+    }
+
+    @Transactional
+    public ReleaseResponse reject(Long id, ReleaseRejectionRequest request) {
+        Release release = findEntity(id);
+        release.setApprovalStatus(ApprovalStatus.REJECTED);
+        release.setApprovedBy(null);
+        release.setApprovedAt(null);
+        release.setRejectionReason(request.getReason());
+        return ReleaseMapper.toResponse(releaseRepository.save(release));
     }
 
     @Transactional
